@@ -48,17 +48,17 @@ export class FloorView {
     floorLabel.y = 0;
     this.container.addChild(floorLabel);
 
-    EventBus.on("person_spawned", (payload) =>
-      this.onPersonSpawned(payload.person)
-    );
-    EventBus.on("person_move_to_elevator", (payload) => {
+    EventBus.on("person_spawned", this.onPersonSpawned);
+    EventBus.on("person_move_to_elevator", this.onMoveToElevator);
+  }
+
+  private onMoveToElevator = (payload: { person: Person }): void => {
       const floor = payload.person.startFloor;
       if (floor !== this.model.floorNumber) return;
       this.removePerson(payload.person);
-    });
   }
-
-  private onPersonSpawned = (person: Person): void => {
+  private onPersonSpawned = (payload: { person: Person }): void => {
+    const { person } = payload;
     if (person.startFloor !== this.model.floorNumber) return;
     this.spawnNewPerson(person);
   };
@@ -99,11 +99,20 @@ export class FloorView {
   }
 
   public removePerson(person: Person): void {
-    this.waitingPersonsViews = this.waitingPersonsViews.filter((p) => p.model !== person);
+    this.waitingPersonsViews = this.waitingPersonsViews.filter(
+      (p) => p.model !== person
+    );
 
     this.waitingPersonsViews.forEach((p, i) => {
       const expectedX = this.personSpacing + i * 40;
       p.moveTo(expectedX, p.container.y);
     });
+  }
+
+  public destroy(): void {
+    EventBus.off("person_spawned", this.onPersonSpawned);
+    EventBus.off("person_move_to_elevator", this.onMoveToElevator);
+    this.container.removeChildren();
+    this.container.destroy({ children: true, texture: true });
   }
 }

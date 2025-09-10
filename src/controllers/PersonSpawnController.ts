@@ -18,10 +18,12 @@ export class PersonSpawnController {
       this.getRandomSpawnTime()
     );
 
-    EventBus.on("person_move_to_elevator", (payload) => {
-      const floor = payload.person.startFloor;
-      this.floors[floor] = this.floors[floor].filter((p) => p !== payload.person);
-    })
+    EventBus.on("person_move_to_elevator", this.onPersonMoveToElevator);
+  }
+
+  private onPersonMoveToElevator = (payload: { person: Person }): void => {
+    const floor = payload.person.startFloor;
+    this.floors[floor] = this.floors[floor].filter((p) => p !== payload.person);
   }
 
   private getRandomSpawnTime(): number {
@@ -50,5 +52,9 @@ export class PersonSpawnController {
 
   update(delta: number) {
     this.spawnerTick(delta);
+  }
+
+  destroy(): void {
+    EventBus.off("person_move_to_elevator", this.onPersonMoveToElevator);
   }
 }

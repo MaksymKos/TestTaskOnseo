@@ -5,6 +5,10 @@ export class ServiceLocator {
     this.services[name] = service;
   }
 
+  static unregister(name: string) {
+    delete this.services[name];
+  }
+
   static get<T>(name: string): T {
     const service = this.services[name];
     if (!service) {

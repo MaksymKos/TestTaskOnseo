@@ -18,4 +18,8 @@ export class TweenManager {
   static remove(tween: Tween<any>) {
     return TweenManager.group.remove(tween);
   }
+
+  static removeAll() {
+    return TweenManager.group.removeAll();
+  }
 }

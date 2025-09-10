@@ -60,4 +60,23 @@ export class BuildingView {
     this.elevator.container.y = this.height - this.floorHeight;
     this.container.addChild(this.elevator.container);
   }
+
+  public destroy() {
+    this.tweenContainer.stop();
+    this.tweenContainer = null as any;
+
+    for (let i = 0; i < this.floors.length; i++) {
+      this.floors[i].destroy();
+
+      ServiceLocator.unregister(`floor_${i}`);
+    }
+    this.floors = [];
+
+    this.elevator.destroy();
+    ServiceLocator.unregister("elevator");
+
+    this.graphics.destroy({ children: true, texture: true });
+    this.container.removeChildren();
+    this.container.destroy({ children: true, texture: true });
+  }
 }

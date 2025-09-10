@@ -79,7 +79,36 @@ class ElevatorSimulationApp {
   }
 
   private async handleConfigChange(floors: number, capacity: number) {
+    config.floors = floors;
+    config.elevatorCapacity = capacity;
 
+    this.app.stage.removeChild(this.building.container);
+    this.building.destroy();
+    this.elevatorController.destroy();
+    this.personSpawnController.destroy();
+    TweenManager.removeAll();
+
+    this.building = new BuildingView(
+      config.floors,
+      config.floorHeight,
+      config.buildingWidth,
+      config.elevatorWidth,
+      config.elevatorHeight,
+      config.elevatorCapacity
+    );
+
+    this.building.container.x = (window.innerWidth - config.buildingWidth) / 2;
+    this.building.container.y = (window.innerHeight - this.building.height) / 2;
+    this.app.stage.addChild(this.building.container);
+
+    this.personSpawnController = new PersonSpawnController(config.floors);
+    
+    this.elevatorController = new ElevatorController(
+      config.floors,
+      config.elevatorCapacity,
+      config.elevatorStopTime
+    );
+    this.update();
   }
 
   private update(): void {

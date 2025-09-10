@@ -9,9 +9,9 @@ export class ElevatorController {
   currentFloor: number = 0;
 
   state: "idle" | "moving" | "loading" = "idle";
-  
+
   passengers: Person[] = [];
-  
+
   private elevatorArrivedAt: number = performance.now();
   private direction: "up" | "down" = "up";
 
@@ -24,19 +24,21 @@ export class ElevatorController {
     this.capacity = elevatorCapacity;
     this.elevatorLoadingTimeMs = elevatorLoadingTimeMs;
 
-    EventBus.on("person_arrived_at_elevator", (payload) => {
-      this.addToQueue(payload.person);
-    });
-    EventBus.on("elevator_arrived", (payload) => {
-      this.onElevatorArrived(payload.floor);
-    });
+    EventBus.on("person_arrived_at_elevator", this.onPersonArrivedAtElevator);
+    EventBus.on("elevator_arrived", this.onElevatorArrived);
   }
+
+  private onPersonArrivedAtElevator = (payload: { person: Person }): void => {
+    const { person } = payload;
+    this.addToQueue(person);
+  };
 
   addToQueue(person: Person): void {
     this.queues[person.startFloor].push(person);
   }
 
-  private onElevatorArrived = (floor: number): void => {
+  private onElevatorArrived = (payload: { floor: number }): void => {
+    const { floor } = payload;
     this.elevatorArrivedAt = performance.now();
     this.currentFloor = floor;
 
@@ -52,9 +54,25 @@ export class ElevatorController {
 
     for (let i = 0; i < availableSpots; i++) {
       if (this.queues[floor].length === 0) break;
-      const person = this.queues[floor].shift();
+
+      const getFiltered = (dir: "up" | "down") =>
+        this.queues[floor].filter(
+          (p) => (p.targetFloor > floor ? "up" : "down") === dir
+        );
+
+      let filtered = getFiltered(this.direction);
+
+      if (filtered.length === 0 && this.passengers.length === 0) {
+        this.direction = this.direction === "up" ? "down" : "up";
+        filtered = getFiltered(this.direction);
+      }
+
+      const person = filtered.shift();
       if (!person) break;
+
       this.passengers.push(person);
+      this.queues[floor] = this.queues[floor].filter((p) => p !== person);
+
       EventBus.emit("person_move_to_elevator", { person });
     }
   };
@@ -173,5 +191,10 @@ export class ElevatorController {
     } else {
       this.travelBasedOnPassengers();
     }
+  }
+
+  destroy(): void {
+    EventBus.off("person_arrived_at_elevator", this.onPersonArrivedAtElevator);
+    EventBus.off("elevator_arrived", this.onElevatorArrived);
   }
 }

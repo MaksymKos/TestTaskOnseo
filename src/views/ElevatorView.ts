@@ -50,18 +50,16 @@ export class ElevatorView {
 
     this.drawElevator();
 
-    EventBus.on("move_elevator", (payload) => {
-      this.moveToFloor(payload.floor);
-    });
-    EventBus.on("person_move_to_elevator", (payload) => {
-      this.onPersonMoveToElevator(payload.person);
-    });
-    EventBus.on("person_arrived_at_destination", (payload) => {
-      this.onPersonArrivedAtDestination(payload.person);
-    });
+    EventBus.on("move_elevator", this.onElevatorMove);
+    EventBus.on("person_move_to_elevator", this.onPersonMoveToElevator);
+    EventBus.on("person_arrived_at_destination", this.onPersonArrivedAtDestination);
   }
 
-  private onPersonMoveToElevator = (person: Person): void => {
+  private onElevatorMove = (payload: { floor: number }): void => {
+    this.moveToFloor(payload.floor);
+  }
+  private onPersonMoveToElevator = (payload: { person: Person }): void => {
+    const { person } = payload;
     const floor = ServiceLocator.get<FloorView>(`floor_${person.startFloor}`);
     const personView = floor.waitingPersonsViews.find((p) => p.model === person);
     if (!personView) return;
@@ -69,8 +67,8 @@ export class ElevatorView {
     floor.removePerson(person);
     this.addPassenger(personView);
   };
-
-  private onPersonArrivedAtDestination = (person: Person): void => {
+  private onPersonArrivedAtDestination = (payload: { person: Person }): void => {
+    const { person } = payload;
     const personView = this.passengers.find((p) => p.model === person);
     const floorView = ServiceLocator.get<FloorView>(`floor_${person.targetFloor}`);
     if (!personView || !floorView) return;
@@ -119,10 +117,18 @@ export class ElevatorView {
 
   private repositionPassengers(): void {
     this.passengers.forEach((person, index) => {
-      const targetX = 10 + index * (this.width / this.capacity);
+      const targetX = index * (this.width / this.capacity);
       const targetY = this.height - person.container.height;
 
       person.moveTo(targetX, targetY);
     });
+  }
+
+  public destroy(): void {
+    EventBus.off("move_elevator", this.onElevatorMove);
+    EventBus.off("person_move_to_elevator", this.onPersonMoveToElevator);
+    EventBus.off("person_arrived_at_destination", this.onPersonArrivedAtDestination);
+    this.container.removeChildren();
+    this.container.destroy({ children: true, texture: true });
   }
 }
